@@ -3,34 +3,16 @@ version: 2.1
 orbs:
   artifactory: jfrog/artifactory-orb@1.0.0
 
-jobs:
-  upload-artifacts:
-    docker:
-      - image: cimg/openjdk:11.0
-    steps:
-      - checkout
-      
-      # Install JFrog CLI (no jfrog/ prefix!)
-      - artifactory/install
-      
-      # Configure (uses environment variables)
-      - artifactory/configure
-      
-      # Build your application
-      - run:
-          name: Build with Maven
-          command: mvn clean package
-      
-      # Upload artifacts
-      - artifactory/upload:
-          source: "target/*.jar"
-          target: "libs-release-local/com/mycompany/myapp/"
-      
-      # Publish build info
-      - artifactory/build-integration
-
 workflows:
   build-and-deploy:
     jobs:
-      - upload-artifacts:
+      # Use the orb's built-in upload job
+      - artifactory/upload:
+          name: "Build and Upload Maven Artifacts"
+          source: "target/*.jar"
+          target: "libs-release-local/com/mycompany/myapp/"
+          build-steps:
+            - run:
+                name: Build with Maven
+                command: mvn clean package
           context: jfrog-context
