@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  jfrog: jfrog/artifactory-orb@1.0.0
+  artifactory: jfrog/artifactory-orb@1.0.0
 
 jobs:
   upload-artifacts:
@@ -9,23 +9,25 @@ jobs:
       - image: cimg/openjdk:11.0
     steps:
       - checkout
-      - run:
-          name: Install JFrog CLI
-          command: curl -fL https://getcli.jfrog.io/v2-jf | sh
-      - run:
-          name: Configure JFrog Creds
-          command: |
-            ./jf c add <server_id> \
-              --artifactory-url $JFROG_URL \
-              --user $JFROG_USER \
-              --password $JFROG_PASSWORD \
-              --interactive=false
+      
+      # Install JFrog CLI (no jfrog/ prefix!)
+      - artifactory/install
+      
+      # Configure (uses environment variables)
+      - artifactory/configure
+      
+      # Build your application
       - run:
           name: Build with Maven
           command: mvn clean package
-      - run:
-          name: Upload JAR files
-          command: ./jf mvnc --server-id-resolve <server_id> --server-id-deploy <server_id> --repo-resolve-releases libs-release --repo-resolve-snapshots libs-snapshot --repo-deploy-releases release-candidates --repo-deploy-snapshots snapshots --include-patterns "*.jar, *.pom, *.xml"
+      
+      # Upload artifacts
+      - artifactory/upload:
+          source: "target/*.jar"
+          target: "libs-release-local/com/mycompany/myapp/"
+      
+      # Publish build info
+      - artifactory/build-integration
 
 workflows:
   build-and-deploy:
